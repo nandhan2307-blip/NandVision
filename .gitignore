@@ -1,0 +1,11 @@
+﻿venv/
+__pycache__/
+*.pyc
+.env
+temp_*.jpg
+temp_*.pdf
+.streamlit/
+
+# Machine learning model files
+*.pt
+*.onnx
