@@ -1,7 +1,9 @@
 
-# 🧠 NANDVISION
+# NANDVISION
 
 ### Multimodal AI Intelligence Workspace
+
+![NANDVISION Preview](assets/app-preview.png)
 
 NANDVISION is an AI-powered application that combines computer vision, document intelligence, optical character recognition, and retrieval-augmented generation into a single interactive workspace.
 
@@ -9,15 +11,15 @@ It enables users to analyze images, detect objects, extract text, and ask questi
 
 ---
 
-## 🚀 Features
+## Features
 
-### 🖼️ Image Intelligence
+### Image Intelligence
 
 - **Image Q&A** — Ask questions about images using a Vision-Language Model.
 - **Object Detection** — Detect and visualize objects using YOLO.
 - **OCR** — Extract readable text from images using Tesseract OCR.
 
-### 📄 Document Intelligence
+### Document Intelligence
 
 - Convert PDF pages into images.
 - Extract text from documents using OCR.
@@ -28,7 +30,7 @@ It enables users to analyze images, detect objects, extract text, and ask questi
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Technology | Purpose |
 |---|---|
@@ -46,7 +48,7 @@ It enables users to analyze images, detect objects, extract text, and ask questi
 
 ---
 
-## 🏗️ Project Architecture
+## Project Architecture
 
 ```text
 NANDVISION/
@@ -57,34 +59,37 @@ NANDVISION/
 ├── .gitignore
 │
 ├── assets/
-│   └── Sample images and outputs
+│   ├── app-preview.png
+│   ├── detected.jpg
+│   ├── document_page.png
+│   ├── document_page_1.png
+│   ├── test.jpg
+│   └── testocr.png
 │
-├── src/
-│   ├── __init__.py
-│   ├── vlm.py
-│   ├── detector.py
-│   ├── ocr.py
-│   ├── document.py
-│   ├── document_ai.py
-│   └── rag.py
-│
-└── venv/
+└── src/
+    ├── __init__.py
+    ├── vlm.py
+    ├── detector.py
+    ├── ocr.py
+    ├── document.py
+    ├── document_ai.py
+    └── rag.py
 ```
 
 ---
 
-## ⚙️ Installation
+## Installation
 
 ### 1. Clone the repository
 
 ```bash
-git clone YOUR_GITHUB_REPOSITORY_URL
+git clone https://github.com/nandhan2307-blip/NandVision.git
 ```
 
 ### 2. Navigate to the project
 
 ```bash
-cd NANDVISION
+cd NandVision
 ```
 
 ### 3. Create a virtual environment
@@ -109,7 +114,7 @@ python -m pip install -r requirements.txt
 
 ---
 
-## ▶️ Run the Application
+## Run the Application
 
 Start the Streamlit application:
 
@@ -121,7 +126,7 @@ Open the local URL displayed in your terminal.
 
 ---
 
-## 🧪 Application Workflow
+## Application Workflow
 
 ### Image Processing
 
@@ -157,7 +162,7 @@ Generate Grounded Answer
 
 ---
 
-## 🔍 Retrieval-Augmented Generation
+## Retrieval-Augmented Generation
 
 NANDVISION uses a RAG pipeline to retrieve relevant information from uploaded documents.
 
@@ -174,7 +179,7 @@ This helps the application answer questions based on the uploaded document.
 
 ---
 
-## 🎯 Project Goals
+## Project Goals
 
 - Build practical experience in computer vision.
 - Understand vision-language models.
@@ -185,7 +190,7 @@ This helps the application answer questions based on the uploaded document.
 
 ---
 
-## 🔮 Future Improvements
+## Future Improvements
 
 - Improve document layout and table extraction.
 - Add support for more document formats.
@@ -197,17 +202,18 @@ This helps the application answer questions based on the uploaded document.
 
 ---
 
-## 👨‍💻 Developer
+## Developer
 
 **Nandhan S S**
 
-Computer Science Engineering Student  
+Computer Science Engineering Student
+
 Interested in Artificial Intelligence, Computer Vision, Development, and Cybersecurity.
 
 ---
 
-## 📌 Project Status
+## Project Status
 
-🚧 **Active Development**
+**Active Development**
 
 NANDVISION is being developed as a practical portfolio project focused on multimodal AI and document intelligence.
