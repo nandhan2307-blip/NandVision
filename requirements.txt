@@ -1,12 +1,13 @@
 ﻿streamlit
+streamlit
 torch
 torchvision
 transformers
 pillow
-opencv-python-headless
+opencv-python-headless==4.10.0.84
 ultralytics
 pytesseract
 pymupdf
 sentence-transformers
 faiss-cpu
-numpy
+numpy<2.0
