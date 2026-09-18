@@ -5,9 +5,17 @@
 
 ![NANDVISION Preview](assets/app-preview.png)
 
-NANDVISION is an AI-powered application that combines computer vision, document intelligence, optical character recognition, and retrieval-augmented generation into a single interactive workspace.
+NANDVISION is an AI-powered multimodal workspace that combines computer vision, document intelligence, optical character recognition, and Retrieval-Augmented Generation (RAG) into a single interactive application.
 
-It enables users to analyze images, detect objects, extract text, and ask questions about uploaded PDF documents.
+It enables users to analyze images, ask questions about visual content, detect objects, extract text, process PDF documents, and retrieve context-based answers from uploaded files.
+
+---
+
+## Project Overview
+
+NANDVISION was developed as a practical AI project to explore the integration of vision-language models, computer vision, OCR, document processing, semantic search, and language-model-based question answering.
+
+The application brings multiple AI capabilities together through an interactive Streamlit interface.
 
 ---
 
@@ -16,6 +24,7 @@ It enables users to analyze images, detect objects, extract text, and ask questi
 ### Image Intelligence
 
 - **Image Q&A** — Ask questions about images using a Vision-Language Model.
+- **Image Understanding** — Generate descriptions and interpret visual content.
 - **Object Detection** — Detect and visualize objects using YOLO.
 - **OCR** — Extract readable text from images using Tesseract OCR.
 
@@ -23,6 +32,7 @@ It enables users to analyze images, detect objects, extract text, and ask questi
 
 - Convert PDF pages into images.
 - Extract text from documents using OCR.
+- Process multi-page PDF documents.
 - Split document content into searchable chunks.
 - Generate embeddings using Sentence Transformers.
 - Perform semantic search using FAISS.
@@ -55,6 +65,7 @@ NANDVISION/
 │
 ├── app.py
 ├── requirements.txt
+├── packages.txt
 ├── README.md
 ├── .gitignore
 │
@@ -137,6 +148,8 @@ Select AI Capability
      ↓
 VLM / YOLO / OCR
      ↓
+Process Input
+     ↓
 Display Results
 ```
 
@@ -164,18 +177,30 @@ Generate Grounded Answer
 
 ## Retrieval-Augmented Generation
 
-NANDVISION uses a RAG pipeline to retrieve relevant information from uploaded documents.
+NANDVISION uses a Retrieval-Augmented Generation (RAG) pipeline to retrieve relevant information from uploaded documents.
 
 The system:
 
 1. Extracts text from PDF pages.
-2. Divides the text into chunks.
+2. Divides the extracted text into manageable chunks.
 3. Converts chunks into numerical embeddings.
 4. Stores embeddings in a FAISS index.
 5. Searches for relevant information based on the user's question.
-6. Generates an answer using the retrieved context.
+6. Generates an answer using the retrieved document context.
 
-This helps the application answer questions based on the uploaded document.
+This approach helps the application generate answers based on information contained in the uploaded document.
+
+---
+
+## Key Contributions
+
+- Developed image understanding and visual question-answering workflows using Vision-Language Models.
+- Integrated YOLO for object detection and Tesseract OCR for text extraction.
+- Built a document processing pipeline for multi-page PDF analysis.
+- Implemented semantic document retrieval using Sentence Transformers and FAISS.
+- Integrated language-model-based answer generation using retrieved document context.
+- Developed an interactive interface using Streamlit.
+- Deployed the application using Streamlit Community Cloud.
 
 ---
 
@@ -184,21 +209,21 @@ This helps the application answer questions based on the uploaded document.
 - Build practical experience in computer vision.
 - Understand vision-language models.
 - Implement document processing pipelines.
-- Explore semantic search and RAG.
+- Explore semantic search and Retrieval-Augmented Generation.
 - Develop an interactive AI application.
-- Create a portfolio-ready AI project.
+- Create a portfolio-ready multimodal AI project.
 
 ---
 
 ## Future Improvements
 
 - Improve document layout and table extraction.
-- Add support for more document formats.
-- Improve answer evaluation and citations.
+- Add support for additional document formats.
+- Improve answer evaluation and source citations.
 - Add persistent knowledge-base storage.
-- Optimize model performance.
-- Deploy the application online.
+- Optimize model performance and memory usage.
 - Improve accessibility and user experience.
+- Expand multimodal AI capabilities.
 
 ---
 
@@ -214,6 +239,8 @@ Interested in Artificial Intelligence, Computer Vision, Development, and Cyberse
 
 ## Project Status
 
-**Active Development**
+**Deployed | Active Development**
 
-NANDVISION is being developed as a practical portfolio project focused on multimodal AI and document intelligence.
+NANDVISION is a practical portfolio project focused on multimodal AI, computer vision, and document intelligence.
+
+Future development will focus on improving performance, retrieval accuracy, document processing, and user experience.
