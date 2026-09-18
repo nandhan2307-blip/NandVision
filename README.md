@@ -19,6 +19,14 @@ The application brings multiple AI capabilities together through an interactive 
 
 ---
 
+## System Architecture
+
+The following diagram illustrates the architecture of NANDVISION, including its image processing and document intelligence pipelines.
+
+![NANDVISION System Architecture](assets/nandvision-architecture.png)
+
+---
+
 ## Features
 
 ### Image Intelligence
