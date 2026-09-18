@@ -1,3 +1,4 @@
+
 import sys
 import re
 
@@ -28,105 +29,50 @@ language_model = pipeline(
 print("Language model loaded successfully!")
 
 
-def create_chunks(text, chunk_size=100):
+def create_chunks(text, chunk_size=300):
 
     words = text.split()
 
     chunks = []
 
-    current_chunk = []
+    for i in range(0, len(words), chunk_size):
 
-    current_length = 0
+        chunk = " ".join(words[i:i + chunk_size])
 
-    for word in words:
-
-        current_chunk.append(word)
-
-        current_length += 1
-
-        if current_length >= chunk_size:
-
-            chunks.append(
-                " ".join(current_chunk)
-            )
-
-            current_chunk = []
-
-            current_length = 0
-
-    if current_chunk:
-
-        chunks.append(
-            " ".join(current_chunk)
-        )
+        if chunk.strip():
+            chunks.append(chunk)
 
     return chunks
 
 
-def create_page_chunks(pages, chunk_size=100):
+def create_page_chunks(pages, chunk_size=300):
 
     all_chunks = []
 
-    for page_number, page_text in enumerate(
-        pages,
-        start=1
-    ):
+    for page_number, page_text in enumerate(pages, start=1):
 
-        words = page_text.split()
+        chunks = create_chunks(page_text, chunk_size)
 
-        current_chunk = []
+        for chunk in chunks:
 
-        current_length = 0
-
-        for word in words:
-
-            current_chunk.append(word)
-
-            current_length += 1
-
-            if current_length >= chunk_size:
-
-                all_chunks.append(
-                    {
-                        "text": " ".join(current_chunk),
-                        "page": page_number
-                    }
-                )
-
-                current_chunk = []
-
-                current_length = 0
-
-        if current_chunk:
-
-            all_chunks.append(
-                {
-                    "text": " ".join(current_chunk),
-                    "page": page_number
-                }
-            )
+            all_chunks.append({
+                "text": chunk,
+                "page": page_number
+            })
 
     return all_chunks
 
 
-def create_embeddings(text_chunks):
+def create_embeddings(chunks):
 
-    texts = []
-
-    for chunk in text_chunks:
-
-        if isinstance(chunk, dict):
-
-            texts.append(
-                chunk["text"]
-            )
-
-        else:
-
-            texts.append(chunk)
+    texts = [
+        chunk["text"] if isinstance(chunk, dict) else chunk
+        for chunk in chunks
+    ]
 
     embeddings = embedding_model.encode(
-        texts
+        texts,
+        convert_to_numpy=True
     )
 
     return embeddings
@@ -136,13 +82,9 @@ def create_faiss_index(embeddings):
 
     dimension = embeddings.shape[1]
 
-    index = faiss.IndexFlatL2(
-        dimension
-    )
+    index = faiss.IndexFlatL2(dimension)
 
-    index.add(
-        embeddings
-    )
+    index.add(embeddings.astype("float32"))
 
     return index
 
@@ -151,233 +93,304 @@ def search_documents(
     question,
     chunks,
     index,
-    top_k=2,
+    top_k=3,
     distance_threshold=2.0
 ):
 
     question_embedding = embedding_model.encode(
-        [question]
+        [question],
+        convert_to_numpy=True
     )
 
     distances, indices = index.search(
-        question_embedding,
+        question_embedding.astype("float32"),
         top_k
     )
 
     results = []
 
-    for position, index_number in enumerate(
+    for distance, index_position in zip(
+        distances[0],
         indices[0]
     ):
 
-        if index_number == -1:
-
+        if index_position == -1:
             continue
-
-        distance = float(
-            distances[0][position]
-        )
 
         if distance > distance_threshold:
-
             continue
 
-        chunk = chunks[index_number]
+        result = chunks[index_position].copy()
 
-        if isinstance(chunk, dict):
+        result["distance"] = float(distance)
 
-            text = chunk["text"]
-            page = chunk["page"]
-
-        else:
-
-            text = chunk
-            page = None
-
-        results.append(
-            {
-                "chunk": text,
-                "page": page,
-                "distance": distance
-            }
-        )
+        results.append(result)
 
     return results
 
 
-def prepare_context(search_results):
+def prepare_context(results):
 
     context_parts = []
 
-    for result in search_results:
+    for result in results:
 
-        text = result["chunk"]
+        page = result.get("page", "Unknown")
 
-        text = text[:1800]
+        text = result.get("text", "")
 
         context_parts.append(
-            text
+            f"[Page {page}]\n{text}"
         )
 
-    return "\n\n".join(
-        context_parts
+    return "\n\n".join(context_parts)
+
+
+def extract_sentences(text):
+
+    sentences = re.split(
+        r"(?<=[.!?])\s+",
+        text.strip()
     )
 
-
-def extract_name(context):
-
-    match = re.search(
-        r"(?i)\b(NANDHAN\s+S\s*S?)\b",
-        context
-    )
-
-    if match:
-
-        return match.group(1).upper()
-
-    return None
-
-
-def extract_education(context):
-
-    patterns = [
-        r"(B\.?E\.?\s+Computer Science\s*&?\s*Engineering)",
-        r"(Computer Science\s*&?\s*Engineering)"
+    return [
+        sentence.strip()
+        for sentence in sentences
+        if sentence.strip()
     ]
 
-    for pattern in patterns:
 
-        match = re.search(
-            pattern,
-            context,
-            re.IGNORECASE
-        )
+def find_project_answer(context, project_name):
 
-        if match:
+    context_lower = context.lower()
 
-            return match.group(1).strip()
-
-    return None
-
-
-def extract_programming_languages(context):
-
-    match = re.search(
-        r"Programming:\s*([^|]+?)(?:\s+Web\s*&|\s+AI\s*&|$)",
-        context,
-        re.IGNORECASE
+    project_position = context_lower.find(
+        project_name.lower()
     )
 
-    if match:
+    if project_position == -1:
+        return None
 
-        return match.group(1).strip()
+    start = max(0, project_position - 150)
 
-    return None
+    end = min(
+        len(context),
+        project_position + 500
+    )
 
+    answer = context[start:end].strip()
 
-def extract_projects(context):
-
-    projects = []
-
-    if re.search(
-        r"NandConnects",
-        context,
-        re.IGNORECASE
-    ):
-
-        projects.append(
-            "NandConnects — College Hub Website"
-        )
-
-    if re.search(
-        r"Paalam",
-        context,
-        re.IGNORECASE
-    ):
-
-        projects.append(
-            "Paalam — Real-Time Medicine Stock Visibility Solution"
-        )
-
-    if projects:
-
-        return "\n".join(
-            projects
-        )
-
-    return None
+    return answer
 
 
 def deterministic_answer(question, context):
 
     question_lower = question.lower()
 
-    if (
-        "what is my name" in question_lower
-        or "what's my name" in question_lower
-        or "who am i" in question_lower
+    # Name-related questions
+    if "what is my name" in question_lower or (
+        "name" in question_lower
+        and "nandhan" in context.lower()
     ):
 
-        return extract_name(context)
-
-
-    if (
-        "what is my degree" in question_lower
-        or "what degree" in question_lower
-        or "what did i study" in question_lower
-        or "what am i studying" in question_lower
-    ):
-
-        return extract_education(context)
-
-
-    if (
-        "programming languages" in question_lower
-        or "programming language do i know" in question_lower
-        or "programming languages do i know" in question_lower
-    ):
-
-        return extract_programming_languages(
-            context
+        name_match = re.search(
+            r"(?:name\s*[:\-]?\s*)([A-Za-z ]{2,40})",
+            context,
+            re.IGNORECASE
         )
 
+        if name_match:
 
-    if (
-        "what projects" in question_lower
-        or "which projects" in question_lower
-        or "projects have i worked" in question_lower
+            name = name_match.group(1).strip()
+
+            return f"The name mentioned in the document is {name}."
+
+    # Education-related questions
+    if any(
+        keyword in question_lower
+        for keyword in [
+            "education",
+            "educational qualification",
+            "degree",
+            "college"
+        ]
     ):
 
-        return extract_projects(context)
+        sentences = extract_sentences(context)
 
+        education_sentences = [
+            sentence
+            for sentence in sentences
+            if any(
+                keyword in sentence.lower()
+                for keyword in [
+                    "bachelor",
+                    "engineering",
+                    "college",
+                    "university",
+                    "degree",
+                    "computer science"
+                ]
+            )
+        ]
+
+        if education_sentences:
+
+            return " ".join(education_sentences[:3])
+
+    # Programming language questions
+    if (
+        "programming language" in question_lower
+        or "coding language" in question_lower
+    ):
+
+        language_names = [
+            "Python",
+            "C",
+            "C++",
+            "Java",
+            "JavaScript",
+            "HTML",
+            "CSS",
+            "SQL"
+        ]
+
+        found_languages = []
+
+        for language in language_names:
+
+            if re.search(
+                rf"\b{re.escape(language)}\b",
+                context,
+                re.IGNORECASE
+            ):
+
+                if language not in found_languages:
+
+                    found_languages.append(language)
+
+        if found_languages:
+
+            return (
+                "The programming languages mentioned "
+                "in the document are: "
+                + ", ".join(found_languages)
+                + "."
+            )
+
+    # Project-related questions
+    if "project" in question_lower:
+
+        project_names = [
+            "Paalam",
+            "NandConnects"
+        ]
+
+        found_projects = []
+
+        for project in project_names:
+
+            if project.lower() in context.lower():
+
+                found_projects.append(project)
+
+        if found_projects:
+
+            return (
+                "The projects mentioned in the document "
+                "include: "
+                + ", ".join(found_projects)
+                + "."
+            )
+
+    # Paalam-related questions
+    if "paalam" in question_lower:
+
+        answer = find_project_answer(
+            context,
+            "Paalam"
+        )
+
+        if answer:
+
+            return answer
+
+    # NandConnects-related questions
+    if "nandconnects" in question_lower:
+
+        answer = find_project_answer(
+            context,
+            "NandConnects"
+        )
+
+        if answer:
+
+            return answer
 
     return None
 
 
 def is_subjective_question(question):
 
-    question_lower = question.lower()
-
-    subjective_words = [
-        "favorite",
-        "favourite",
-        "prefer",
-        "preferred",
-        "dislike",
-        "best",
-        "opinion",
-        "choice",
-        "choose",
-        "enjoy"
+    subjective_keywords = [
+        "explain",
+        "describe",
+        "summarize",
+        "why",
+        "how",
+        "purpose",
+        "problem",
+        "impact"
     ]
 
-    for word in subjective_words:
+    question_lower = question.lower()
 
-        if word in question_lower:
+    return any(
+        keyword in question_lower
+        for keyword in subjective_keywords
+    )
 
-            return True
 
-    return False
+def clean_model_answer(answer, question):
+
+    answer = answer.strip()
+
+    answer = re.sub(
+        r"^(Answer|Response)\s*:\s*",
+        "",
+        answer,
+        flags=re.IGNORECASE
+    )
+
+    answer = answer.split("<|im_end|>")[0].strip()
+
+    answer = answer.split("<|endoftext|>")[0].strip()
+
+    answer = re.sub(
+        r"\s+",
+        " ",
+        answer
+    ).strip()
+
+    question_clean = re.sub(
+        r"\s+",
+        " ",
+        question
+    ).strip().lower()
+
+    answer_clean = answer.lower()
+
+    if answer_clean == question_clean:
+
+        return ""
+
+    if len(answer) > 500:
+
+        sentences = extract_sentences(answer)
+
+        answer = " ".join(sentences[:4])
+
+    return answer.strip()
 
 
 def generate_answer(question, context):
@@ -385,209 +398,95 @@ def generate_answer(question, context):
     if not context.strip():
 
         return (
-            "Information not found in the document."
+            "I could not find relevant information "
+            "in the document."
         )
 
-
-    extracted_answer = deterministic_answer(
+    deterministic_result = deterministic_answer(
         question,
         context
     )
 
-    if extracted_answer:
+    if deterministic_result:
 
-        return extracted_answer
+        return deterministic_result
 
+    prompt = f"""<|im_start|>system
+You are a document question-answering assistant.
 
-    if is_subjective_question(
-        question
-    ):
+Answer the user's question using only the provided document context.
 
-        return (
-            "Information not found in the document."
-        )
+Do not repeat the question.
+Do not invent information.
+Give a short, clear and direct answer.
+If the context does not contain the answer, say that the information is not available.
+<|im_end|>
+<|im_start|>user
+Document context:
 
-
-    prompt = f"""
-You are a strict document question-answering assistant.
-
-Answer the question using ONLY the document context.
-
-RULES:
-
-- Use only information explicitly stated.
-- Never guess.
-- Never invent.
-- Never use outside knowledge.
-- Do not copy the document.
-- Answer only what was asked.
-- Keep the answer short.
-- If the answer is not clearly present, say:
-Information not found in the document.
-
-DOCUMENT CONTEXT:
 {context}
 
-QUESTION:
-{question}
-
-ANSWER:
+Question: {question}
+<|im_end|>
+<|im_start|>assistant
 """
 
-    result = language_model(
-        prompt,
-        max_new_tokens=40,
-        do_sample=False,
-        return_full_text=False
-    )
+    try:
 
-    print("\n===== RAW MODEL OUTPUT =====")
-
-    print(result)
-
-    answer = result[0]["generated_text"].strip()
-
-    for marker in [
-        "USER QUESTION:",
-        "QUESTION:",
-        "DOCUMENT CONTEXT:",
-        "ANSWER:"
-    ]:
-
-        if marker in answer:
-
-            answer = answer.split(
-                marker
-            )[-1].strip()
-
-    if len(answer) > 250:
-
-        return (
-            "Information not found in the document."
+        output = language_model(
+            prompt,
+            max_new_tokens=60,
+            do_sample=False,
+            return_full_text=False
         )
 
-    if not answer:
+        generated_text = output[0]["generated_text"]
 
-        return (
-            "Information not found in the document."
+        answer = clean_model_answer(
+            generated_text,
+            question
         )
 
-    return answer
+        if not answer:
+
+            return (
+                "I could not generate a clear answer "
+                "from the document."
+            )
+
+        return answer
+
+    except Exception as error:
+
+        print("Answer generation error:", error)
+
+        return (
+            "An error occurred while generating "
+            "the answer."
+        )
 
 
 if __name__ == "__main__":
 
-    from src.ocr import extract_text
-    from src.document import pdf_to_images
+    print("\nRAG module loaded successfully!")
 
+    sample_context = """
+    Paalam is a real-time medicine stock visibility
+    solution for rural PHC clusters. It helps ensure
+    the right medicine reaches the right hands at
+    the right time.
+    """
 
-    pdf_path = "NandhanATS-resume.pdf"
+    sample_question = "What problem does Paalam solve?"
 
-    images = pdf_to_images(
-        pdf_path
-    )
+    print("\n===== TEST QUESTION =====")
+    print(sample_question)
 
-
-    pages = []
-
-    for image in images:
-
-        page_text = extract_text(
-            image
-        )
-
-        pages.append(page_text)
-
-
-    chunks = create_page_chunks(
-        pages
-    )
-
-
-    print("\n===== DOCUMENT CHUNKS =====")
-
-    print(
-        "Number of chunks:",
-        len(chunks)
-    )
-
-
-    embeddings = create_embeddings(
-        chunks
-    )
-
-
-    print("\n===== EMBEDDINGS =====")
-
-    print(
-        "Embedding shape:",
-        embeddings.shape
-    )
-
-
-    index = create_faiss_index(
-        embeddings
-    )
-
-
-    print("\n===== FAISS INDEX =====")
-
-    print(
-        "FAISS index created successfully!"
-    )
-
-
-    question = (
-        "What projects have I worked on?"
-    )
-
-
-    search_results = search_documents(
-        question,
-        chunks,
-        index,
-        top_k=2
-    )
-
-
-    print("\n===== RETRIEVAL RESULTS =====")
-
-
-    for number, result in enumerate(
-        search_results,
-        start=1
-    ):
-
-        print(
-            f"\nChunk {number}"
-        )
-
-        print(
-            "Page:",
-            result["page"]
-        )
-
-        print(
-            "FAISS Distance:",
-            result["distance"]
-        )
-
-        print(
-            result["chunk"]
-        )
-
-
-    context = prepare_context(
-        search_results
-    )
-
+    print("\n===== TEST ANSWER =====")
 
     answer = generate_answer(
-        question,
-        context
+        sample_question,
+        sample_context
     )
-
-
-    print("\n===== RAG ANSWER =====")
 
     print(answer)
